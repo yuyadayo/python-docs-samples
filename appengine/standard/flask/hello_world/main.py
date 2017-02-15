@@ -17,13 +17,62 @@ import logging
 
 from flask import Flask
 
+import google.auth
+import google.auth.transport.requests
+from google.oauth2 import service_account
+import google.oauth2._client
+import google.oauth2.id_token
+import requests_toolbelt.adapters.appengine
+
+# Use the App Engine Requests adapter. This makes sure that Requests uses
+# URLFetch.
+requests_toolbelt.adapters.appengine.monkeypatch()
+
 
 app = Flask(__name__)
 
 
+def get_open_id_connect_id_token():
+    credentials = service_account.Credentials.from_service_account_file(
+        'service-account.json',
+        additional_claims={
+            'target_audience': 'https://msachs-staging.appspot.com'
+        })
+
+    grant_assertion = credentials._make_authorization_grant_assertion()
+
+    request = google.auth.transport.requests.Request()
+
+    # oauth2._client.jwt_grant (rightfully) expects an access token
+    # in the response, but the target_audience claim doesn't return one.
+    # so use the underlying _token_endpoint_request instead.
+
+    body = {
+        'assertion': grant_assertion,
+        'grant_type': google.oauth2._client._JWT_GRANT_TYPE,
+    }
+
+    token_response = google.oauth2._client._token_endpoint_request(
+        request, credentials._token_uri, body)
+
+    return token_response['id_token']
+
+
+def verify_open_id_connect_id_token(id_token):
+    certs_url = 'https://www.googleapis.com/oauth2/v1/certs'
+    request = google.auth.transport.requests.Request()
+
+    claims = google.oauth2.id_token.verify_token(
+        id_token, request, certs_url=certs_url)
+
+    return claims
+
+
 @app.route('/')
 def hello():
-    return 'Hello World!'
+    id_token = get_open_id_connect_id_token()
+    claims = verify_open_id_connect_id_token(id_token)
+    return 'Token: {}, Claims: {}'.format(id_token, claims)
 
 
 @app.errorhandler(500)
