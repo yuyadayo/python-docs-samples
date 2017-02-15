@@ -18,6 +18,7 @@ import logging
 from flask import Flask
 
 import google.auth
+import google.auth.app_engine
 import google.auth.transport.requests
 from google.oauth2 import service_account
 import google.oauth2._client
@@ -33,10 +34,14 @@ app = Flask(__name__)
 
 
 def get_open_id_connect_id_token():
-    credentials = service_account.Credentials.from_service_account_file(
-        'service-account.json',
+    bootstrap_credentials = google.auth.app_engine.Credentials()
+    signer = google.auth.app_engine.Signer()
+    credentials = service_account.Credentials(
+        signer,
+        bootstrap_credentials.service_account_email,
+        token_uri='https://www.googleapis.com/oauth2/v4/token',
         additional_claims={
-            'target_audience': 'https://msachs-staging.appspot.com'
+            'target_audience': 'http://meep'
         })
 
     grant_assertion = credentials._make_authorization_grant_assertion()
