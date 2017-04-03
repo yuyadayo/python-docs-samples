@@ -3,4 +3,6 @@ env: flex
 entrypoint: uwsgi --http-socket :$PORT --ini uwsgi.ini
 
 runtime_config:
-  python_version: 3
+  # Use Python 2 for now, as uWSGI has installation issues with Python 3.5.
+  # See https://github.com/GoogleCloudPlatform/python-runtime/issues/96
+  python_version: 2
