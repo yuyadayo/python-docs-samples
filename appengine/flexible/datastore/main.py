@@ -21,6 +21,7 @@ from google.cloud import datastore
 
 
 app = Flask(__name__)
+ds = datastore.Client()
 
 
 def is_ipv6(addr):
@@ -35,7 +36,6 @@ def is_ipv6(addr):
 # [START example]
 @app.route('/')
 def index():
-    ds = datastore.Client()
 
     user_ip = request.remote_addr
 
